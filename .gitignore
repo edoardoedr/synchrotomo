@@ -1,0 +1,34 @@
+# Dati (immagini, volumi, array)
+*.tdf
+*.tif
+*.tiff
+*.npy
+*.tar
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# Log
+*.log
+
+# Build / binari
+build/
+*.egg-info/
+*.so
+*.dll
+*.pyd
+
+# Cache Python
+__pycache__/
+*.pyc
+
+# Editor
+.vscode/
+
+# STP vendorizzato: parti pesanti dell'installazione
+vendor/STP_1.6.3/guide
+vendor/STP_1.6.3/depend
+vendor/STP_1.6.3/data
+vendor/STP_1.6.3/src/stp-gui
+vendor/STP_1.6.3/python/python-2.7.10.amd64/

@@ -1,0 +1,122 @@
+# Configurazione della pipeline di ricostruzione
+# Uso: python main_reconstruction.py config_reconstruction.yaml
+#
+# I percorsi sotto sono segnaposto: sostituirli con quelli reali.
+# I valori numerici (32 keV, 6400 mm, 41.9 um, offset, angoli) sono un esempio
+# reale di acquisizione breast CT a sincrotrone.
+
+# ======================================================
+# 1) TIFF -> TDF
+# ======================================================
+tiff2tdf:
+  # False = salta la conversione e usa `output_file` come TDF di input gia' esistente
+  enabled: True
+  # Indice della prima / ultima immagine da processare (-1 = tutte)
+  from: 0
+  to: -1
+  # Cartella con le immagini TIFF
+  input_path: "/path/to/input/tiffs/"
+  # File TDF di output (input degli step successivi)
+  output_file: "/path/to/output/raw/data.tdf"
+  # Pixel da rimuovere sui quattro lati
+  crop_top: 0
+  crop_bottom: 0
+  crop_left: 0
+  crop_right: 0
+  # Prefissi dei file (es. img_0001.tif). "-" = flat/dark assenti
+  tomo_prefix: "img"
+  flat_prefix: "-"
+  dark_prefix: "-"
+  # True = le immagini sono proiezioni, False = sinogrammi
+  projection_order: True
+  # True = layout HDF5 ottimizzato per l'accesso per sinogrammi
+  privilege_sino: True
+  # Compressione GZIP (0-9, 0 = nessuna)
+  compression: 5
+  nr_threads: 8
+  log_file: "/path/to/output/raw/conversion.log"
+
+# ======================================================
+# 2) PHASE RETRIEVAL (opzionale)
+# ======================================================
+phase_retrieval:
+  enabled: True
+  # 0 = TIE-Hom (Paganin et al., 2002)
+  # 1 = TIE-Hom generalizzato (Paganin et al., 2020)
+  # 2+ = Projected CTF (Moosmann et al., 2011)
+  method: 0
+  # TIE-Hom: param1 = beta, param2 = delta (conta il rapporto delta/beta)
+  # CTF:     param1 = threshold, param2 = parametro di regolarizzazione
+  param1: 2.619e-11
+  param2: 2.277e-8
+  energy: 32.0      # keV
+  distance: 6400.0  # distanza campione-detector, mm
+  pixsize: 41.9     # dimensione pixel, micron
+  pad: True         # padding per FFT (riduce artefatti ai bordi)
+  nr_threads: 6
+  output_file: "/path/to/output/phrt/data_phrt.tdf"
+  log_file: "/path/to/output/phrt/phaseretrieval.log"
+
+# ======================================================
+# 3) RICOSTRUZIONE
+# ======================================================
+reconstruct:
+  enabled: True
+  # Range di sinogrammi (slice) da ricostruire (-1 = tutti)
+  from: 0
+  to: -1
+  output_path: "/path/to/output/recon/tiffs/"
+  output_prefix: "recon"   # -> recon_0000.tif, recon_0001.tif, ...
+  nr_threads: 8
+
+  # ----- Geometria -----
+  angles: 3.1219        # angolo totale di rotazione in radianti (pi = 180 gradi)
+  offset: -204.0        # offset del centro di rotazione, pixel
+  angles_projfrom: 0    # prima / ultima proiezione da usare
+  angles_projto: 1271
+
+  # ----- Metodo -----
+  # FBP_CUDA, SIRT_CUDA, SART_CUDA, CGLS_CUDA, MR-FBP_CUDA, FISTA-TV_CUDA, GRIDREC
+  method: "FBP_CUDA"
+  # FBP: filtro (ram-lak, shepp-logan, cosine, hamming, hann, ...)
+  # iterativi: numero di iterazioni
+  # FISTA-TV: "lambda:fgpiter:tviter" (es. "0.01:50:10")
+  param1: "shepp-logan"
+  scale: 1.0
+  overpad: True
+  logtransform: False   # False se il dato e' gia' in assorbimento (es. dopo phase retrieval)
+  circle: True          # maschera circolare sull'output
+
+  # ----- Pre-processing on-the-fly -----
+  preprocessing_required: False
+  flat_end: False
+  half_half: False
+  half_half_line: 0
+  ext_fov: False
+  ext_fov_rot_right: False
+  ext_fov_overlap: 0
+  ext_fov_normalize: False
+  ext_fov_average: False
+  ext_fov_proj: 0
+  norm_sx: 0
+  norm_dx: 0
+  dynamic_ff: False
+  # Ring removal: "metodo:parametri" (es. "rivers:11;0"); "none:" = nessuno
+  skip_ringrem: True
+  ringrem: "none:"
+
+  # ----- Avanzati -----
+  zerone_mode: False
+  corr_offset: 0.0
+  decim_factor: 1       # decimazione proiezioni
+  downsc_factor: 1      # downscaling detector
+  rolling: False        # sinogram rolling (acquisizioni 360)
+  roll_shift: 0
+
+  # ----- Post-processing -----
+  postprocess_required: False
+  polarfilt_opt: "none:"     # filtro polare, es. "homomorphic:p1;p2"
+  convert_opt: "none:"       # "linear8:min;max" (uint8) o "linear:min;max" (uint16)
+  crop_opt: "0:0:0:0"        # top:bottom:left:right
+
+  log_file: "/path/to/output/recon/reconstruction.log"

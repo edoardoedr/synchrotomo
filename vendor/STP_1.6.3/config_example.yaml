@@ -1,0 +1,200 @@
+# File di configurazione per la conversione TIFF to TDF
+# Esempio di utilizzo: python main.py config_example.yaml
+
+tiff2tdf:
+  enabled: False   # false per non fare la conversione TIFF to TDF
+
+  # Indice della prima immagine da processare (0 = dall'inizio)
+  from: 0
+
+  # Indice dell'ultima immagine da processare (-1 = tutte le immagini)
+  to: -1
+
+  # Percorso alla cartella contenente le immagini TIFF
+  input_path: ""
+
+  # Percorso e nome del file TDF di output
+  output_file: ""
+
+  # Parametri di cropping (numero di pixel da rimuovere)
+  crop_top: 0
+  crop_bottom: 0
+  crop_left: 0
+  crop_right: 0
+
+  # Prefisso dei file di proiezione (es: tomo_0001.tif, tomo_0002.tif)
+  tomo_prefix: "tomo"
+
+  # Prefisso dei file flat field (usa "-" per saltare)
+  flat_prefix: "flat"
+
+  # Prefisso dei file dark field (usa "-" per saltare)
+  dark_prefix: "dark"
+
+  # True = le immagini sono proiezioni, False = sinogrammi
+  projection_order: False
+
+  # True = ottimizza per lettura/scrittura veloce di sinogrammi
+  privilege_sino: True
+
+  # Fattore di compressione GZIP (0-9, dove 0=nessuna compressione)
+  compression: 5
+
+  # Numero di thread/processi per il processing parallelo
+  nr_threads: 4
+
+  # Percorso al file di log
+  log_file: ""
+
+# ======================================================
+# PHASE RETRIEVAL (opzionale - eseguito dopo tiff2tdf)
+# ======================================================
+phase_retrieval:
+  # Abilita/disabilita il phase retrieval
+  enabled: True
+  
+  # Metodo:
+  # 0 = TIE-Hom (Paganin et al., 2002)
+  # 1 = Generalized TIE-Hom (Paganin et al., 2020)
+  # 2+ = Projected CTF (Moosmann et al., 2011)
+  method: 0
+  
+  # Parametri (dipendono dal metodo):
+  # Per TIE-Hom (method 0 o 1):
+  #   param1 = beta
+  #   param2 = delta
+  #   (ratio delta/beta è importante, es: 2000.0/1.0 = 2000)
+  # Per CTF (method >= 2):
+  #   param1 = threshold
+  #   param2 = regularization parameter
+  param1: 1.0    # beta
+  param2: 2000.0 # delta
+  
+  # Parametri sperimentali
+  energy: 22.0      # Energia del fascio in keV
+  distance: 300.0   # Distanza campione-detector in mm
+  pixsize: 2.2      # Dimensione pixel in micron
+  
+  # Padding per FFT (True consigliato per evitare artefatti ai bordi)
+  pad: True
+  
+  # File di output del phase retrieval
+  output_file: "/home/ffilice/breast_ct/STP_1.6.3/output/output_phrt.tdf"
+  
+  # File di log per phase retrieval
+  log_file: "/home/ffilice/breast_ct/STP_1.6.3/log/phaseretrieval.log"
+
+# ======================================================
+# RECONSTRUCTION (opzionale - eseguito dopo phase retrieval)
+# ======================================================
+reconstruct:
+  # Abilita/disabilita la ricostruzione
+  enabled: True
+  
+  # Range di sinogrammi da ricostruire
+  from: 0
+  to: -1  # -1 = tutti i sinogrammi
+  
+  # Percorso alla cartella di output per le slice ricostruite
+  output_path: "/home/ffilice/breast_ct/STP_1.6.3/reconstructed/"
+  
+  # Prefisso per i file di output (es: recon_0000.tif, recon_0001.tif)
+  output_prefix: "recon"
+  
+  # ===== PARAMETRI ESSENZIALI =====
+  
+  # Angolo totale di rotazione in radianti (180° = 3.1416, 360° = 6.2832)
+  angles: 3.1416
+  
+  # Offset del centro di rotazione (in pixel)
+  offset: 0.0
+  
+  # Metodo di ricostruzione:
+  # FBP_CUDA, SIRT_CUDA, SART_CUDA, CGLS_CUDA, GRIDREC, MR-FBP_CUDA, FISTA-TV_CUDA
+  method: "FBP_CUDA"
+  
+  # Parametro del metodo:
+  # - Per FBP: tipo di filtro (ram-lak, shepp-logan, cosine, hamming, hann, etc.)
+  # - Per metodi iterativi: numero di iterazioni
+  # - Per FISTA-TV: "lambda:fgpiter:tviter" (es: "0.01:50:10")
+  param1: "shepp-logan"
+  
+  # Fattore di scala (1.0 = dimensione originale)
+  scale: 1.0
+  
+  # Padding aggiuntivo per evitare artefatti ai bordi
+  overpad: True
+  
+  # Applica trasformazione logaritmica
+  logtransform: True
+  
+  # Applica maschera circolare all'output
+  circle: True
+  
+  # ===== PREPROCESSING ON-THE-FLY =====
+  
+  # Abilita preprocessing durante la ricostruzione
+  preprocessing_required: False
+  
+  # Usa flat field alla fine dell'acquisizione
+  flat_end: False
+  
+  # Acquisizione half-half (metà con sample, metà senza)
+  half_half: False
+  half_half_line: 0
+  
+  # Extended field of view (FOV esteso)
+  ext_fov: False
+  ext_fov_rot_right: False
+  ext_fov_overlap: 0
+  ext_fov_normalize: False
+  ext_fov_average: False
+  ext_fov_proj: 0
+  
+  # Normalizzazione sinistra/destra
+  norm_sx: 0
+  norm_dx: 0
+  
+  # Ring removal (rimozione artefatti ad anello)
+  skip_ringrem: True
+  ringrem: "-"  # oppure "rivers:11;0" per algoritmo rivers
+  
+  # ===== PARAMETRI AVANZATI =====
+  
+  # Modalità zero-one (scala in [0,1])
+  zerone_mode: False
+  
+  # Offset di correzione per log transform
+  corr_offset: 0.0
+  
+  # Decimazione e downscaling
+  decim_factor: 1  # decimazione proiezioni
+  downsc_factor: 1  # downscaling detector
+  
+  # Rimozione proiezioni (range di proiezioni da usare)
+  angles_projfrom: 0
+  angles_projto: 1799
+  
+  # Sinogram rolling (per acquisizioni 360°)
+  rolling: False
+  roll_shift: 0
+  
+  # Dynamic flat fielding
+  dynamic_ff: False
+  
+  # ===== POST-PROCESSING =====
+  
+  # Abilita post-processing
+  postprocess_required: False
+  
+  # Filtro polare
+  polarfilt_opt: "-"  # oppure parametri specifici
+  
+  # Conversione tipo dati
+  convert_opt: "-"  # oppure "uint8" o "uint16"
+  
+  # Crop finale
+  crop_opt: "-"  # oppure "x1:x2,y1:y2"
+  
+  # File di log per ricostruzione
+  log_file: "/home/ffilice/breast_ct/STP_1.6.3/log/reconstruction.log"
